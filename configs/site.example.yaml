@@ -1,0 +1,34 @@
+# Template for any evaluation site.
+# Paths under data_root are relative to data_root.
+# Paths under outputs / species_map are relative to the repository root.
+# Absolute paths are rejected.
+
+site_id: my_site
+title: My site
+data_root: data/my_site
+
+tiles: [1]
+
+aligned: aligned/x_eval.npz
+gt_layers_dir: gt_layers
+
+fm_laz: inputs/forestmamba.laz
+sat_laz: inputs/galaxy_sat_final.laz
+detailview_laz: inputs/manual_SAT_FM_BP1_v2_final.laz
+
+match_csv: inputs/matched_trees_cleaned_las_index.csv
+enriched_match_csv: inputs/matched_layers_enriched_las_index.csv
+inventory: inputs/inventory.gpkg
+inventory_layer: null          # set if GeoPackage has named layers
+inventory_id_col: inventory_id # or TreeID / full_id — must match match_csv
+inventory_species_col: species # inventory column mapped via INV_TO_DV
+
+species_map: contracts/detailview_lookup.csv
+
+nn_m: 0.05
+n_min: 100
+
+outputs:
+  tables: outputs/my_site/tables
+  figures: outputs/my_site/figures
+  dv_results: outputs/my_site/detailview

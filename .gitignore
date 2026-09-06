@@ -1,0 +1,39 @@
+# Local data and regenerable outputs (never commit study data)
+/data/**
+!/data/README.md
+/outputs/**
+!/outputs/.gitkeep
+
+# Point clouds and aligned arrays
+*.laz
+*.las
+*.npz
+*.bin
+*.zip
+*.gpkg
+*.shp
+*.dbf
+*.shx
+*.prj
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+.env
+.env.*
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Notebooks checkpoints
+.ipynb_checkpoints/

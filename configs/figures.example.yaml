@@ -1,0 +1,10 @@
+# Multi-site Results figures (prepare_results_figures).
+# Copy to figures.yaml and point at your site configs after tables exist.
+
+output_dir: outputs/figures
+
+sites:
+  - label: Ettenheim
+    config: configs/ettenheim.example.yaml
+  - label: Mathislewald
+    config: configs/mathislewald.example.yaml

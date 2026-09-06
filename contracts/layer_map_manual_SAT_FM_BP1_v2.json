@@ -1,0 +1,40 @@
+{
+  "note": "Expected extra dimensions on the multi-track DetailView product (manual + SAT + FM + FM_BP1).",
+  "dimensions": {
+    "PredInstance": "Manual instance label (inventory-matched stems)",
+    "species_id_GT": "DetailView species id on manual instances",
+    "species_prob_GT": "DetailView species probability on manual instances",
+    "PredInstance_SAT": "SegmentAnyTree instance label",
+    "PredSemantic_SAT": "SegmentAnyTree semantic class",
+    "species_id_SAT": "DetailView species id on SAT instances",
+    "species_prob_SAT": "DetailView species probability on SAT instances",
+    "PredInstance_FM": "ForestMamba instance label",
+    "PredSemantic_FM": "ForestMamba semantic class",
+    "PredScore_FM": "ForestMamba prediction confidence",
+    "species_id_FM": "DetailView species id on ForestMamba instances",
+    "species_prob_FM": "DetailView species probability on ForestMamba instances",
+    "PredInstance_FM_BP1": "ForestMamba + BluePoint-refined instance label",
+    "PredSemantic_FM_BP1": "ForestMamba + BluePoint-refined semantic class",
+    "PredScore_FM_BP1": "ForestMamba + BluePoint-refined confidence",
+    "species_id_FM_BP1": "DetailView species id on FM+BP instances",
+    "species_prob_FM_BP1": "DetailView species probability on FM+BP instances"
+  },
+  "expected_present": [
+    "PredInstance",
+    "species_id_GT",
+    "species_prob_GT",
+    "PredInstance_SAT",
+    "species_id_SAT",
+    "species_prob_SAT",
+    "PredInstance_FM",
+    "species_id_FM",
+    "species_prob_FM",
+    "PredInstance_FM_BP1",
+    "species_id_FM_BP1",
+    "species_prob_FM_BP1"
+  ],
+  "sentinel": {
+    "species_id": 255,
+    "comment": "DetailView unclassified / nodata. Species id 0 (Abies alba) is a valid class."
+  }
+}

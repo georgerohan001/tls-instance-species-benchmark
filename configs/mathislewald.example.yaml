@@ -1,0 +1,32 @@
+# Example layout matching the Mathislewald thesis evaluation (tile 001).
+# Fill data/mathislewald/ with inputs obtained separately — nothing is shipped.
+
+site_id: mathislewald
+title: Mathislewald
+data_root: data/mathislewald
+
+tiles: [1]
+
+aligned: aligned/x_eval.npz
+gt_layers_dir: gt_layers
+
+fm_laz: inputs/forestmamba.laz
+sat_laz: inputs/galaxy_sat_final.laz
+detailview_laz: inputs/manual_SAT_FM_BP1_v2_final.laz
+
+match_csv: inputs/matched_trees_cleaned_las_index.csv
+enriched_match_csv: inputs/matched_layers_enriched_las_index.csv
+inventory: inputs/inventory.gpkg
+inventory_layer: null
+inventory_id_col: TreeID
+inventory_species_col: new_tree_1
+
+species_map: contracts/detailview_lookup.csv
+
+nn_m: 0.05
+n_min: 100
+
+outputs:
+  tables: outputs/mathislewald/tables
+  figures: outputs/mathislewald/figures
+  dv_results: outputs/mathislewald/detailview
