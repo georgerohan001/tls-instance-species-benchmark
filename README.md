@@ -2,7 +2,9 @@
 
 Private reproducibility package for an MSc thesis workflow that benchmarks **ForestMamba** and **SegmentAnyTree (SAT)** instance segmentation against **manual** tree instances, then evaluates **DetailView** species classification on multiple instance sources (manual, SAT, FM, FM+BluePoint).
 
-This repository ships **code, configs, and contracts only**. Point clouds, inventories, and result tables are not included. Obtain study data separately if you need to reproduce thesis numbers, or point the configs at your own plots.
+This repository ships **analysis code, configs, contracts**, and a **static HTML thesis preview** (GitHub Pages under `docs/`). Point clouds, inventories, and result tables are not included. Obtain study data separately if you need to reproduce thesis numbers, or point the configs at your own plots.
+
+**Thesis web preview (GitHub Pages):** https://georgerohan001.github.io/tls-instance-species-benchmark/
 
 ## What this is / is not
 
@@ -11,7 +13,8 @@ This repository ships **code, configs, and contracts only**. Point clouds, inven
 | Align GT + FM (+ inject SAT) into `x_eval.npz` | Running ForestMamba / SAT / DetailView inference |
 | ForestFormer3D-style metrics (T1–T7, T8–T11) | CloudCompare BIN editing |
 | DetailView FOR-species20K-style tables (T20–T26) | Shipping multi-GB LAZ / BIN files |
-| Paper-style Results figures from CSV tables | Thesis LaTeX / HTML preview |
+| Paper-style Results figures from CSV tables | Editable LaTeX sources (preview HTML only) |
+| Static thesis HTML preview (`docs/`) | |
 
 Inference of SAT, ForestMamba, and DetailView is assumed to happen externally (e.g. Galaxy Europe). This repo evaluates outputs you already have.
 
@@ -97,6 +100,20 @@ They describe the expected layout only. Place data you obtain separately under `
 - [`docs/input_contracts.md`](docs/input_contracts.md) — required LAZ fields and CSV columns
 - [`docs/galaxy_field_maps.md`](docs/galaxy_field_maps.md) — Galaxy / DetailView field naming
 - [`contracts/`](contracts/) — species id lookup and multi-track dimension map
+
+## Thesis HTML preview (GitHub Pages)
+
+The live site is built from `docs/` (`index.html`, `figures/`, PDF download). It mirrors the local paper preview (section nav, figures/tables rail, PDF / CITE / SHARE, MathJax, image lightbox).
+
+To refresh after editing the thesis elsewhere:
+
+1. Rebuild the HTML preview in your paper workspace.
+2. Copy the preview output into `docs/` (replace `index.html`, `figures/`, and the PDF).
+3. Commit and push `docs/` to `main`.
+
+GitHub Pages is configured from the `/docs` folder on `main`.
+
+**Note:** GitHub Pages URLs are usually publicly reachable even when the repository is private. Do not put sensitive unpublished data in `docs/`. Collaborators still need a repo invite to see the private source and pipeline.
 
 ## Privacy
 
