@@ -96,9 +96,9 @@ They describe the expected layout only. Place data you obtain separately under `
 
 ## Documentation
 
-- [`docs/protocol.md`](docs/protocol.md) — metrics definitions and evaluation rules
-- [`docs/input_contracts.md`](docs/input_contracts.md) — required LAZ fields and CSV columns
-- [`docs/galaxy_field_maps.md`](docs/galaxy_field_maps.md) — Galaxy / DetailView field naming
+- [`documentation/protocol.md`](documentation/protocol.md) — metrics definitions and evaluation rules
+- [`documentation/input_contracts.md`](documentation/input_contracts.md) — required LAZ fields and CSV columns
+- [`documentation/galaxy_field_maps.md`](documentation/galaxy_field_maps.md) — Galaxy / DetailView field naming
 - [`contracts/`](contracts/) — species id lookup and multi-track dimension map
 
 ## Thesis HTML preview (GitHub Pages)
@@ -113,7 +113,7 @@ To refresh after editing the thesis elsewhere:
 
 GitHub Pages is configured from the `/docs` folder on `main`.
 
-**Note:** GitHub Pages URLs are usually publicly reachable even when the repository is private. Do not put sensitive unpublished data in `docs/`. Collaborators still need a repo invite to see the private source and pipeline.
+**Note:** Publishing this site requires GitHub Pages. On the free plan that means the **repository must be public** (the Pages URL is world-readable either way). Study point clouds are still not in the repo. Collaborators can be invited for write access if needed.
 
 ## Privacy
 
@@ -123,4 +123,4 @@ GitHub Pages is configured from the `/docs` folder on `main`.
 
 ## License / access
 
-Private repository. Invite collaborators from the GitHub settings page.
+Public repository (required for GitHub Pages on the free plan). Invite collaborators from GitHub settings if they need write access.
