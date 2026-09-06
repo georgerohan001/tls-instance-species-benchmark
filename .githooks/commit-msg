@@ -1,0 +1,18 @@
+#!/bin/sh
+# Strip Cursor co-author trailers so GitHub does not show "cursoragent".
+msg_file="$1"
+tmp_file="${msg_file}.tmp"
+grep -v -E '^Co-authored-by:[[:space:]]*(Cursor|cursoragent)' "$msg_file" > "$tmp_file" || true
+# Also drop a trailing blank line left behind after removing the trailer.
+# Portable: rewrite without relying on GNU sed.
+python - "$tmp_file" "$msg_file" <<'PY'
+import sys
+from pathlib import Path
+src, dst = Path(sys.argv[1]), Path(sys.argv[2])
+text = src.read_text(encoding="utf-8", errors="replace")
+lines = text.splitlines()
+while lines and not lines[-1].strip():
+    lines.pop()
+dst.write_text("\n".join(lines) + ("\n" if lines else ""), encoding="utf-8")
+src.unlink(missing_ok=True)
+PY
