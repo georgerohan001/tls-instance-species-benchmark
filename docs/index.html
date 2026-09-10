@@ -152,24 +152,32 @@ main > section:first-child{margin-top:0}
   text-decoration:none;color:inherit;padding:.4rem;
   border:1px solid var(--line);border-radius:12px;background:#fff;
   transition:background .12s ease, border-color .12s ease, box-shadow .12s ease;
-  min-width:0;max-width:100%;overflow:hidden;
+  min-width:0;max-width:100%;
 }
 .float-item:hover{background:#f3f7f1;border-color:#d5e3d2;box-shadow:0 4px 14px rgba(40,55,35,.06)}
 .float-item.is-active{
   background:#e8f1e6;border-color:#b4cbb0;
   box-shadow:0 0 0 1px rgba(47,93,58,.08);
 }
+/* Padding-box aspect ratio: more reliable than aspect-ratio on Android Chrome flex/grid */
 .float-item-thumb{
-  width:100%;max-width:100%;aspect-ratio:4 / 3;border-radius:8px;overflow:hidden;border:1px solid var(--line);
-  background:#f0eee7;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  position:relative;width:100%;max-width:100%;height:0;padding-bottom:75%;
+  border-radius:8px;overflow:hidden;border:1px solid var(--line);
+  background:#f0eee7;flex:0 0 auto;
 }
 .float-item-thumb img{
-  width:100%;height:100%;max-width:100%;object-fit:cover;object-position:center;display:block;
+  position:absolute;inset:0;width:100%;height:100%;
+  object-fit:cover;object-position:center;display:block;border:0;
 }
 .float-item-thumb.is-table{
+  height:auto;padding-bottom:0;min-height:4.75rem;
+  display:flex;align-items:center;justify-content:center;
   background:linear-gradient(145deg,#eef5ea,#dfeadf);color:var(--accent);
 }
-.float-item-meta{min-width:0;padding:0 .1rem .15rem;overflow:hidden}
+.float-item-thumb.is-table svg{
+  position:static;width:22px;height:18px;flex-shrink:0;
+}
+.float-item-meta{min-width:0;padding:0 .1rem .15rem}
 .float-item-label{
   display:inline-block;font-size:.68rem;font-weight:750;color:var(--accent);
   background:#e4efe2;border-radius:6px;padding:.08rem .35rem;margin-bottom:.2rem;
@@ -364,7 +372,8 @@ padding:.45rem .65rem;border-radius:10px;cursor:pointer;font-family:"Segoe UI",s
   }
   body.float-rail-open{overflow:hidden}
   .float-tab{min-height:2.55rem}
-  .float-item{min-width:0;max-width:100%;overflow:hidden}
+  .float-item{min-width:0;max-width:100%}
+  .float-item-thumb{min-height:0}
   .abbr-section ul{columns:1}
   .cite-popup{
     position:fixed;left:.75rem;right:.75rem;bottom:.75rem;top:auto;
@@ -389,7 +398,7 @@ padding:.45rem .65rem;border-radius:10px;cursor:pointer;font-family:"Segoe UI",s
 }
 @media (max-width:560px){
   .float-rail:not(.is-collapsed) .float-rail-list{
-    grid-template-columns:minmax(0,1fr);
+    grid-template-columns:repeat(2,minmax(0,1fr));
   }
   header h1{font-size:1.02rem}
 }
