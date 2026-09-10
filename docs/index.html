@@ -24,6 +24,7 @@ window.MathJax = {
   --cite:#1d4f91;
 }
 *{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{margin:0;font-family:"Source Serif 4",Georgia,"Times New Roman",serif;color:var(--ink);
 background:radial-gradient(900px 480px at 0% 0%,#e4ede4 0%,transparent 55%),linear-gradient(180deg,#efe8dc,var(--bg));
 line-height:1.62}
@@ -110,6 +111,14 @@ main > section:first-child{margin-top:0}
 }
 .float-rail-title-row{display:flex;align-items:center;justify-content:space-between;gap:.5rem}
 .float-rail-title{margin:0;font-size:.98rem;font-weight:700;color:var(--accent);letter-spacing:-.01em}
+.float-rail-toggle{
+  display:none;appearance:none;border:1px solid var(--line);background:#fff;color:var(--accent);
+  border-radius:10px;min-width:2.5rem;min-height:2.5rem;padding:.35rem .55rem;cursor:pointer;
+  font-family:"Segoe UI",sans-serif;font-size:.78rem;font-weight:700;line-height:1;flex-shrink:0;
+  align-items:center;justify-content:center;gap:.25rem;
+}
+.float-rail-toggle:hover{background:#eef5ea}
+.float-rail-toggle-label{display:none}
 .float-rail-counts{display:flex;gap:.4rem;margin-top:.55rem;flex-wrap:wrap}
 .float-chip{
   font-size:.72rem;font-weight:650;color:var(--muted);background:#eef5ea;
@@ -167,14 +176,6 @@ main > section:first-child{margin-top:0}
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
   font-size:.7rem;line-height:1.3;color:var(--muted);
 }
-@media (max-width:900px){
-  .page-shell{grid-template-columns:1fr;padding:1rem 1rem 2rem}
-  .float-rail{position:static;max-height:none;order:-1}
-  .float-rail-list{grid-template-columns:repeat(3,minmax(0,1fr))}
-}
-@media (max-width:560px){
-  .float-rail-list{grid-template-columns:repeat(2,minmax(0,1fr))}
-}
 section{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:1.1rem 1.25rem 1.35rem;margin:1rem 0}
 h2{margin:0 0 .75rem;color:var(--accent);font-family:"Segoe UI",sans-serif;font-size:1.55rem;font-weight:700;
 letter-spacing:-0.01em;border-bottom:2px solid var(--accent);padding-bottom:.35rem}
@@ -187,7 +188,7 @@ h2 + p, h3 + p, h4 + p, h5 + p{margin-top:.35rem}
 .todo{color:var(--todo);font-weight:600;font-family:"Segoe UI",sans-serif;font-size:.92em}
 .placeholder{color:var(--ph);font-style:italic}
 code{font-family:ui-monospace,Consolas,monospace;font-size:.88em;background:#f1efe8;padding:.05rem .25rem;border-radius:4px}
-.math-display{margin:.85rem 0;overflow-x:auto}
+.math-display{margin:.85rem 0;overflow-x:auto;-webkit-overflow-scrolling:touch}
 mjx-container{font-size:105% !important}
 /* Numbered citations + APA hover speech bubble (phrasing-only markup; no <div> inside <p>) */
 .cite{position:relative;display:inline;}
@@ -214,7 +215,12 @@ a.cite-ref:hover,.cite.is-open a.cite-ref{background:rgba(29,79,145,.1)}
   content:"";position:absolute;top:100%;left:50%;transform:translateX(-50%);
   border:8px solid transparent;border-top-color:#1a2330;pointer-events:none;
 }
-.cite:hover .cite-popup,
+/* Desktop / fine pointer: hover opens the bubble. Touch uses .is-open only (see media below). */
+@media (hover: hover) and (pointer: fine){
+  .cite:hover .cite-popup{
+    visibility:visible;opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0);
+  }
+}
 .cite.is-open .cite-popup{
   visibility:visible;opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(0);
 }
@@ -234,7 +240,7 @@ main{overflow:visible}
 figure.fig, .figure-block figure.fig{margin:1rem 0}
 figure.fig img{max-width:100%;height:auto;border:1px solid var(--line);border-radius:8px;background:#fff}
 figcaption{font-family:"Segoe UI",sans-serif;font-size:.88rem;color:var(--muted);margin-top:.35rem}
-.table-block{margin:1rem 0;overflow-x:auto}
+.table-block{margin:1rem 0;overflow-x:auto;-webkit-overflow-scrolling:touch}
 .table-block figcaption{margin:0 0 .45rem;font-weight:600;color:var(--ink)}
 ol.float-toc{margin:.35rem 0 0;padding-left:1.25rem}
 .float-toc-item{margin:.35rem 0;font-family:"Segoe UI",sans-serif;font-size:.92rem;line-height:1.4}
@@ -253,9 +259,6 @@ li{margin:.25rem 0}
 .abbr-section li{
   break-inside:avoid;page-break-inside:avoid;-webkit-column-break-inside:avoid;
   margin:.2rem 0 .45rem;
-}
-@media (max-width:700px){
-  .abbr-section ul{columns:1}
 }
 .refs-list{display:flex;flex-direction:column;gap:.65rem;margin-top:.35rem}
 .ref-card{display:grid;grid-template-columns:2.25rem 1fr;gap:.35rem .65rem;align-items:start;
@@ -285,7 +288,7 @@ cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
 /* Width/height set in JS so the stage hugs the image at fit zoom.
    overflow toggles to auto only when zoomed past fit. */
 .image-modal-viewport{display:flex;overflow:hidden;flex:0 1 auto;min-height:0;min-width:0;
-padding:36px 0 0;overscroll-behavior:contain;box-sizing:border-box}
+padding:36px 0 0;overscroll-behavior:contain;box-sizing:border-box;touch-action:none}
 .image-modal-viewport img{display:block;width:auto;height:auto;max-width:none;max-height:none;
 margin:auto;border:1px solid var(--line);border-radius:8px;background:#fff;box-sizing:border-box;
 image-rendering:auto;-ms-interpolation-mode:bicubic}
@@ -296,6 +299,86 @@ padding:.45rem .65rem;border-radius:10px;cursor:pointer;font-family:"Segoe UI",s
 .image-tool-btn:hover:not(:disabled){background:#eef5ea;border-color:#b8c9b0}
 .image-tool-btn:disabled{opacity:.38;cursor:default}
 .image-preview-clickable{cursor:pointer}
+
+/* ---- Phone + iPad portrait (single column). Desktop layout above 900px is unchanged. ---- */
+@media (max-width:900px){
+  header{padding:.85rem .9rem .65rem}
+  header h1{font-size:1.12rem}
+  header .meta{font-size:.86rem}
+  nav{
+    display:flex;flex-wrap:nowrap;gap:.45rem;padding:.55rem .9rem;
+    overflow-x:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;
+    scrollbar-width:none;-ms-overflow-style:none;
+  }
+  nav::-webkit-scrollbar{display:none}
+  nav a{flex:0 0 auto;padding:.4rem .7rem;font-size:.82rem}
+  .page-shell{grid-template-columns:1fr;padding:.75rem .75rem 2.5rem;gap:.85rem}
+  .doc-actions{justify-content:flex-start;padding-bottom:.15rem}
+  .doc-action{min-height:2.6rem;padding:.5rem .9rem .5rem .75rem;font-size:.82rem}
+  section{padding:.95rem .95rem 1.1rem;margin:.75rem 0;border-radius:10px}
+  h2{font-size:1.28rem}
+  h3{font-size:1.08rem}
+  .figure-block,.table-block{scroll-margin-top:6.5rem}
+  .float-rail{
+    position:sticky;top:.55rem;order:-1;z-index:6;
+    max-height:none;align-self:stretch;
+  }
+  .float-rail-toggle{display:inline-flex}
+  .float-rail-toggle-label{display:inline}
+  .float-rail.is-collapsed .float-rail-tools,
+  .float-rail.is-collapsed .float-rail-list,
+  .float-rail.is-collapsed .float-rail-counts{display:none}
+  .float-rail.is-collapsed .float-rail-head{padding:.65rem .8rem;border-bottom:none}
+  .float-rail:not(.is-collapsed){
+    max-height:min(52vh, 26rem);
+  }
+  .float-rail:not(.is-collapsed) .float-rail-list{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    -webkit-overflow-scrolling:touch;
+  }
+  .float-tab,.float-item{min-height:2.55rem}
+  .abbr-section ul{columns:1}
+  .cite-popup{
+    position:fixed;left:.75rem;right:.75rem;bottom:.75rem;top:auto;
+    width:auto;max-height:min(48vh,22rem);transform:none;
+    z-index:3200;border-radius:14px;padding:.85rem .95rem;
+    -webkit-overflow-scrolling:touch;
+  }
+  .cite.is-open .cite-popup{transform:none}
+  .cite-popup::before,.cite-popup::after{display:none}
+  a.cite-ref{padding:.15em .2em;margin:0 .05em}
+  .image-modal-overlay{padding:8px;align-items:stretch}
+  .image-modal-stage{
+    width:100%;max-width:none;max-height:none;height:100%;
+    border-radius:10px;padding:10px;
+  }
+  .image-modal-close{width:44px;height:44px;top:8px;right:8px}
+  .image-modal-toolbar{gap:.4rem;padding-top:10px}
+  .image-tool-btn{min-height:2.75rem;min-width:2.75rem;padding:.55rem .8rem;font-size:1rem}
+  .text-modal-overlay{padding:12px;align-items:flex-end}
+  .text-modal{width:100%;border-radius:14px 14px 10px 10px}
+  .text-modal-close{width:40px;height:40px}
+}
+@media (max-width:560px){
+  .float-rail:not(.is-collapsed) .float-rail-list{grid-template-columns:repeat(2,minmax(0,1fr))}
+  header h1{font-size:1.02rem}
+}
+/* iPad / tablet landscape: keep two-column desktop grid, tighten rail + touch targets only */
+@media (min-width:901px) and (max-width:1180px){
+  .page-shell{
+    grid-template-columns:minmax(0,1.65fr) minmax(240px,.9fr);
+    gap:.9rem 1rem;padding:.9rem 1rem 2.5rem;
+  }
+  .float-rail{top:4.6rem;max-height:calc(100vh - 5.4rem)}
+  .float-rail-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:.45rem}
+  .doc-action{min-height:2.45rem}
+  .image-tool-btn{min-height:2.5rem;min-width:2.5rem}
+}
+/* Touch devices (any width): prefer tap citations; larger hit areas */
+@media (hover: none), (pointer: coarse){
+  a.cite-ref{padding:.2em .25em}
+  .float-tab,.doc-action,.image-tool-btn,.text-modal-copy{min-height:2.6rem}
+}
 </style>
 </head>
 <body>
@@ -425,10 +508,15 @@ I thank my first supervisor, Prof. Dr. Teja Kattenborn (Chair of Sensor-based Ge
 </section>
 </main>
 </div>
-<aside id="float-rail" class="float-rail" aria-label="Figures and tables">
+<aside id="float-rail" class="float-rail is-collapsed" aria-label="Figures and tables">
   <div class="float-rail-head">
     <div class="float-rail-title-row">
       <h2 class="float-rail-title">Figures &amp; tables</h2>
+      <button type="button" class="float-rail-toggle" id="float-rail-toggle"
+        aria-expanded="false" aria-controls="float-rail-list" title="Show or hide figures and tables">
+        <span class="float-rail-toggle-label" id="float-rail-toggle-label">Show</span>
+        <span aria-hidden="true" id="float-rail-toggle-icon">▾</span>
+      </button>
     </div>
     <div class="float-rail-counts">
       <span class="float-chip" id="float-count-fig">0 figures</span>
@@ -480,9 +568,15 @@ I thank my first supervisor, Prof. Dr. Teja Kattenborn (Chair of Sensor-based Ge
 </div>
 <script>
 (function () {
-  /* Keep speech bubble open while moving from [n] onto the DOI (bridge + short leave delay). */
+  /* Desktop: hover keeps the bubble. Touch / click toggles .is-open. */
   var HIDE_MS = 280;
-  document.querySelectorAll(".cite").forEach(function (el) {
+  var cites = Array.prototype.slice.call(document.querySelectorAll(".cite"));
+  function closeAllCites(except) {
+    cites.forEach(function (el) {
+      if (el !== except) el.classList.remove("is-open");
+    });
+  }
+  cites.forEach(function (el) {
     var timer = null;
     function open() {
       if (timer) { clearTimeout(timer); timer = null; }
@@ -502,6 +596,27 @@ I thank my first supervisor, Prof. Dr. Teja Kattenborn (Chair of Sensor-based Ge
       popup.addEventListener("mouseenter", open);
       popup.addEventListener("mouseleave", scheduleClose);
     }
+    var ref = el.querySelector("a.cite-ref");
+    if (ref) {
+      ref.addEventListener("click", function (ev) {
+        /* Allow unmodified click to still jump to References when already open. */
+        if (!el.classList.contains("is-open")) {
+          ev.preventDefault();
+          closeAllCites(el);
+          el.classList.add("is-open");
+        } else {
+          /* second tap follows the href to #bib-… */
+          el.classList.remove("is-open");
+        }
+      });
+    }
+  });
+  document.addEventListener("click", function (ev) {
+    if (ev.target.closest && ev.target.closest(".cite")) return;
+    closeAllCites(null);
+  });
+  document.addEventListener("keydown", function (ev) {
+    if (ev.key === "Escape") closeAllCites(null);
   });
 })();
 </script>
@@ -512,10 +627,49 @@ I thank my first supervisor, Prof. Dr. Teja Kattenborn (Chair of Sensor-based Ge
   var search = document.getElementById("float-rail-search");
   var countFig = document.getElementById("float-count-fig");
   var countTab = document.getElementById("float-count-tab");
+  var toggleBtn = document.getElementById("float-rail-toggle");
+  var toggleLabel = document.getElementById("float-rail-toggle-label");
+  var toggleIcon = document.getElementById("float-rail-toggle-icon");
   if (!rail || !list) return;
 
   var filter = "figure";
   var items = [];
+  var mqNarrow = window.matchMedia("(max-width: 900px)");
+
+  function isNarrow() {
+    return mqNarrow.matches;
+  }
+
+  function setCollapsed(collapsed) {
+    rail.classList.toggle("is-collapsed", collapsed);
+    if (toggleBtn) {
+      toggleBtn.setAttribute("aria-expanded", collapsed ? "false" : "true");
+    }
+    if (toggleLabel) toggleLabel.textContent = collapsed ? "Show" : "Hide";
+    if (toggleIcon) toggleIcon.textContent = collapsed ? "▾" : "▴";
+  }
+
+  function syncRailMode() {
+    /* Desktop: always expanded (toggle is CSS-hidden). Narrow: keep collapsed by default. */
+    if (!isNarrow()) {
+      setCollapsed(false);
+    } else if (!rail.dataset.userToggled) {
+      setCollapsed(true);
+    }
+  }
+
+  if (toggleBtn) {
+    toggleBtn.addEventListener("click", function () {
+      rail.dataset.userToggled = "1";
+      setCollapsed(!rail.classList.contains("is-collapsed"));
+    });
+  }
+  if (mqNarrow.addEventListener) {
+    mqNarrow.addEventListener("change", syncRailMode);
+  } else if (mqNarrow.addListener) {
+    mqNarrow.addListener(syncRailMode);
+  }
+  syncRailMode();
 
   function stripText(el) {
     return (el ? el.textContent : "").replace(/\s+/g, " ").trim();
@@ -597,6 +751,7 @@ I thank my first supervisor, Prof. Dr. Teja Kattenborn (Chair of Sensor-based Ge
         var target = document.getElementById(it.id);
         if (!target) return;
         history.replaceState(null, "", "#" + it.id);
+        if (isNarrow()) setCollapsed(true);
         target.scrollIntoView({ behavior: "smooth", block: "start" });
         setActive(it.id);
       });
@@ -637,7 +792,7 @@ I thank my first supervisor, Prof. Dr. Teja Kattenborn (Chair of Sensor-based Ge
         if (best && best.target && best.target.id) {
           setActive(best.target.id);
           var link = list.querySelector('.float-item[data-target="' + best.target.id + '"]');
-          if (link) {
+          if (link && !rail.classList.contains("is-collapsed")) {
             var lr = list.getBoundingClientRect();
             var ir = link.getBoundingClientRect();
             if (ir.top < lr.top || ir.bottom > lr.bottom) {
