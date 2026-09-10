@@ -363,8 +363,9 @@ padding:.45rem .65rem;border-radius:10px;cursor:pointer;font-family:"Segoe UI",s
   .float-rail:not(.is-collapsed) .float-rail-list{grid-template-columns:repeat(2,minmax(0,1fr))}
   header h1{font-size:1.02rem}
 }
-/* iPad / tablet landscape: keep two-column desktop grid, tighten rail + touch targets only */
-@media (min-width:901px) and (max-width:1180px){
+/* iPad / tablet landscape: keep two-column grid, tighten rail + touch targets only.
+   Gated on coarse pointer so ordinary desktop mice at these widths stay unchanged. */
+@media (min-width:901px) and (max-width:1180px) and (pointer: coarse){
   .page-shell{
     grid-template-columns:minmax(0,1.65fr) minmax(240px,.9fr);
     gap:.9rem 1rem;padding:.9rem 1rem 2.5rem;
