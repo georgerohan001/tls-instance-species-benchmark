@@ -1,5 +1,6 @@
 # Example layout matching the Ettenheim thesis evaluation (tiles 001-004).
 # Fill data/ettenheim/ with inputs obtained separately — nothing is shipped.
+# Example values are illustrative; runtime does not hard-code this site_id.
 
 site_id: ettenheim
 title: Ettenheim
@@ -25,6 +26,13 @@ species_map: contracts/detailview_lookup.csv
 
 nn_m: 0.05
 n_min: 100
+
+# Tile footprints used for neighbour-count edge censoring (illustrative).
+tile_xy_bounds:
+  1: [416731.53225, 5346696.0275, 416756.53125, 5346721.0265]
+  2: [416756.53225, 5346696.0275, 416781.53125, 5346721.0265]
+  3: [416756.53225, 5346671.0275, 416781.53125, 5346696.0265]
+  4: [416731.53225, 5346671.0275, 416756.53125, 5346696.0265]
 
 outputs:
   tables: outputs/ettenheim/tables

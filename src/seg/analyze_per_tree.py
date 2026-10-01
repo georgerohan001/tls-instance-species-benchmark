@@ -13,11 +13,13 @@ import numpy as np
 import pandas as pd
 from scipy.spatial import ConvexHull, QhullError, cKDTree
 from scipy.stats import spearmanr
+from shapely.geometry import Polygon
+from shapely.ops import unary_union
 
 _REPO = Path(__file__).resolve().parents[2]
 if str(_REPO) not in sys.path:
     sys.path.insert(0, str(_REPO))
-from src.paths import load_site_config
+from src.paths import SitePaths, load_site_config
 
 import run_metrics as rm  # noqa: E402
 from run_metrics import build_iou_and_match, configure, load_data  # noqa: E402
@@ -26,6 +28,59 @@ SEED = 0
 N_BOOT = 1000
 HULL_MAX_PTS = 50_000
 MODELS = [("ForestMamba", "mamba_id"), ("SegmentAnyTree", "sat_id")]
+NEIGHBOUR_RADII_M = (3.0, 5.0, 7.0)
+PRIMARY_NEIGHBOUR_R_M = 5.0
+
+# Populated from site YAML via configure_site(); empty means density side checks cannot run.
+TILE_XY_BOUNDS: dict[int, tuple[float, float, float, float]] = {}
+
+
+def configure_site(site: SitePaths) -> None:
+    """Configure run_metrics paths and neighbour-count tile footprints."""
+    global TILE_XY_BOUNDS
+    configure(site)
+    TILE_XY_BOUNDS = dict(site.tile_xy_bounds)
+
+
+def require_tile_xy_bounds(tiles: set[int]) -> dict[int, tuple[float, float, float, float]]:
+    """Return bounds for every requested tile or raise an actionable error."""
+    missing = sorted(t for t in tiles if t not in TILE_XY_BOUNDS)
+    if missing:
+        raise SystemExit(
+            "tile_xy_bounds missing for tile(s) "
+            + ", ".join(str(t) for t in missing)
+            + ". Add tile_xy_bounds: {<tile_id>: [xmin, ymin, xmax, ymax], ...} "
+            "to the site YAML (see configs/site.example.yaml). Required for "
+            "neighbour-count edge censoring and T10b/T10c side tables."
+        )
+    return {int(t): TILE_XY_BOUNDS[int(t)] for t in tiles}
+
+
+def edge_censored_for_radius(
+    cx: float, cy: float, xmin: float, ymin: float, xmax: float, ymax: float, r: float
+) -> bool:
+    return min(cx - xmin, xmax - cx, cy - ymin, ymax - cy) < r
+
+
+def _xy_hull_polygon(xx: np.ndarray, yy: np.ndarray, idx: np.ndarray | None) -> Polygon | None:
+    """Planimetric convex hull as a shapely Polygon, or None if degenerate."""
+    if idx is None:
+        pts2 = np.column_stack([xx, yy])
+    else:
+        pts2 = np.column_stack([xx[idx], yy[idx]])
+    if len(pts2) < 3:
+        return None
+    try:
+        hull2 = ConvexHull(pts2)
+    except (QhullError, ValueError):
+        return None
+    coords = pts2[hull2.vertices]
+    if len(coords) < 3:
+        return None
+    poly = Polygon(coords)
+    if (not poly.is_valid) or poly.is_empty or poly.area <= 0:
+        return None
+    return poly
 
 
 def pairwise_f1(inter: int, g_size: int, p_size: int) -> tuple[float, float, float]:
@@ -93,12 +148,14 @@ def rank_residual(y: np.ndarray, x: np.ndarray) -> np.ndarray:
 
 
 def compute_tree_covariates(data: dict, cat: pd.DataFrame) -> pd.DataFrame:
-    """Height, NN distance, hull volume per gt_id."""
+    """Height, NN distance, hull volume, neighbour count, planimetric hull overlap per gt_id."""
     rng = np.random.default_rng(SEED)
     gt = data["gt_id"]
     x, y, z = data["x"], data["y"], data["z"]
 
     rows = []
+    centroids = {}
+    polygons: dict[int, Polygon | None] = {}
     for _, r in cat.iterrows():
         gid = int(r["gt_id"])
         mask = gt == gid
@@ -110,11 +167,15 @@ def compute_tree_covariates(data: dict, cat: pd.DataFrame) -> pd.DataFrame:
         z05, z99 = np.percentile(zz, [5, 99])
         height = float(z99 - z05)
         cx, cy = float(xx.mean()), float(yy.mean())
+        centroids[gid] = (cx, cy)
 
         n = len(xx)
+        idx = None
+        if n > HULL_MAX_PTS:
+            idx = rng.choice(n, HULL_MAX_PTS, replace=False)
+
         if n >= 4:
-            if n > HULL_MAX_PTS:
-                idx = rng.choice(n, HULL_MAX_PTS, replace=False)
+            if idx is not None:
                 pts = np.column_stack([xx[idx], yy[idx], zz[idx]])
             else:
                 pts = np.column_stack([xx, yy, zz])
@@ -125,6 +186,11 @@ def compute_tree_covariates(data: dict, cat: pd.DataFrame) -> pd.DataFrame:
                 vol = float("nan")
         else:
             vol = float("nan")
+
+        if n >= 3:
+            polygons[gid] = _xy_hull_polygon(xx, yy, idx)
+        else:
+            polygons[gid] = None
 
         rows.append(
             {
@@ -147,6 +213,66 @@ def compute_tree_covariates(data: dict, cat: pd.DataFrame) -> pd.DataFrame:
     d, ix = tree.query(xy, k=2)
     cov["nn_dist_m"] = d[:, 1]
     cov["nn_gt_id"] = ids[ix[:, 1]]
+
+    overlap_frac = []
+    overlap_nn_frac = []
+    for _, row in cov.iterrows():
+        gid = int(row["gt_id"])
+        poly = polygons.get(gid)
+        if poly is None:
+            overlap_frac.append(float("nan"))
+            overlap_nn_frac.append(float("nan"))
+            continue
+        others = [polygons[j] for j in polygons if j != gid and polygons[j] is not None]
+        if not others:
+            frac = 0.0
+        else:
+            inter = poly.intersection(unary_union(others))
+            frac = (
+                float(np.clip(inter.area / poly.area, 0.0, 1.0))
+                if poly.area > 0
+                else float("nan")
+            )
+        overlap_frac.append(frac)
+
+        nn_id = int(row["nn_gt_id"])
+        nn_poly = polygons.get(nn_id)
+        if nn_poly is None:
+            overlap_nn_frac.append(float("nan"))
+        else:
+            inter_nn = poly.intersection(nn_poly)
+            overlap_nn_frac.append(
+                float(np.clip(inter_nn.area / poly.area, 0.0, 1.0))
+                if poly.area > 0
+                else float("nan")
+            )
+    cov["hull_overlap_frac"] = overlap_frac
+    cov["hull_overlap_nn_frac"] = overlap_nn_frac
+
+    tile_bounds = require_tile_xy_bounds(set(int(t) for t in cov["tile"].unique()))
+    edge_flags = []
+    for _, row in cov.iterrows():
+        xmin, ymin, xmax, ymax = tile_bounds[int(row["tile"])]
+        edge_flags.append(
+            edge_censored_for_radius(
+                float(row["centroid_x"]),
+                float(row["centroid_y"]),
+                xmin,
+                ymin,
+                xmax,
+                ymax,
+                PRIMARY_NEIGHBOUR_R_M,
+            )
+        )
+    cov["edge_censored_5m"] = edge_flags
+
+    for r in NEIGHBOUR_RADII_M:
+        counts = []
+        for i in range(len(cov)):
+            neigh = tree.query_ball_point(xy[i], r=r)
+            counts.append(int(len(neigh) - 1))  # exclude self
+        cov[f"n_gt_within_{int(r)}m"] = counts
+
     size_lab, size_qs = size_tercile(cov["n_points"])
     cov["size_tercile"] = size_lab
     cov.attrs["size_qs"] = size_qs
@@ -218,8 +344,18 @@ def per_tree_scores_for_model(data: dict, cov: pd.DataFrame, method: str, pred_k
                 "centroid_y": float(c["centroid_y"]),
                 "height_m": float(c["height_m"]),
                 "nn_dist_m": float(c["nn_dist_m"]),
+                "n_gt_within_3m": int(c["n_gt_within_3m"]),
+                "n_gt_within_5m": int(c["n_gt_within_5m"]),
+                "n_gt_within_7m": int(c["n_gt_within_7m"]),
+                "edge_censored_5m": bool(c["edge_censored_5m"]),
                 "hull_volume_m3": float(c["hull_volume_m3"])
                 if np.isfinite(c["hull_volume_m3"])
+                else np.nan,
+                "hull_overlap_frac": float(c["hull_overlap_frac"])
+                if np.isfinite(c["hull_overlap_frac"])
+                else np.nan,
+                "hull_overlap_nn_frac": float(c["hull_overlap_nn_frac"])
+                if np.isfinite(c["hull_overlap_nn_frac"])
                 else np.nan,
                 "max_iou": max_iou.get(gid, 0.0),
                 "success_05": success,
@@ -383,6 +519,175 @@ def build_tables(per: pd.DataFrame, plot_t1: pd.DataFrame, size_qs: list[float],
     return t8, t9, t10, t11
 
 
+def build_neighbour_count_side_table(per: pd.DataFrame) -> pd.DataFrame:
+    """Collinearity + offline 3/7 m sensitivity (interior focals)."""
+    base = per[per["Method"] == per["Method"].iloc[0]].copy()
+    n_gt = int(len(base))
+    n_edge = int(base["edge_censored_5m"].astype(bool).sum())
+    n_interior = n_gt - n_edge
+    interior = base.loc[~base["edge_censored_5m"].astype(bool)]
+    rows = [
+        {
+            "Metric": "edge_census",
+            "Method": "all",
+            "Covariate": "n_gt_within_5m",
+            "Spearman_rho": np.nan,
+            "p_value": np.nan,
+            "N": n_gt,
+            "N_interior": n_interior,
+            "N_edge": n_edge,
+            "Note": "focal edge censor at r=5 m",
+        }
+    ]
+    if len(interior) >= 5:
+        rho, p = spearmanr(
+            interior["n_gt_within_5m"].to_numpy(dtype=float),
+            interior["nn_dist_m"].to_numpy(dtype=float),
+        )
+        rows.append(
+            {
+                "Metric": "collinearity",
+                "Method": "all",
+                "Covariate": "n_gt_within_5m_vs_nn_dist_m",
+                "Spearman_rho": float(rho),
+                "p_value": float(p),
+                "N": int(len(interior)),
+                "N_interior": n_interior,
+                "N_edge": n_edge,
+                "Note": "interior focals only",
+            }
+        )
+    for method, sub in per.groupby("Method"):
+        interior_m = sub.loc[~sub["edge_censored_5m"].astype(bool)]
+        y = interior_m["f1_hard"].to_numpy(dtype=float)
+        for col in ("n_gt_within_3m", "n_gt_within_5m", "n_gt_within_7m"):
+            x = interior_m[col].to_numpy(dtype=float)
+            mask = np.isfinite(y) & np.isfinite(x)
+            n = int(mask.sum())
+            if n < 5:
+                rho, p = float("nan"), float("nan")
+            else:
+                rho, p = spearmanr(x[mask], y[mask])
+            rows.append(
+                {
+                    "Metric": "hard_f1_sensitivity",
+                    "Method": method,
+                    "Covariate": col,
+                    "Spearman_rho": float(rho),
+                    "p_value": float(p),
+                    "N": n,
+                    "N_interior": n_interior,
+                    "N_edge": n_edge,
+                    "Note": "interior focals only",
+                }
+            )
+    return pd.DataFrame(rows)
+
+
+def build_hull_overlap_side_table(per: pd.DataFrame) -> pd.DataFrame:
+    """Collinearity + residual-after-NN for hull overlap (interior focals)."""
+    base = per[per["Method"] == per["Method"].iloc[0]].copy()
+    n_gt = int(len(base))
+    n_edge = int(base["edge_censored_5m"].astype(bool).sum())
+    n_interior = n_gt - n_edge
+    interior = base.loc[~base["edge_censored_5m"].astype(bool)]
+    rows = [
+        {
+            "Metric": "edge_census",
+            "Method": "all",
+            "Covariate": "hull_overlap_frac",
+            "Spearman_rho": np.nan,
+            "p_value": np.nan,
+            "N": n_gt,
+            "N_interior": n_interior,
+            "N_edge": n_edge,
+            "Note": "reuse edge_censored_5m interior focals",
+        }
+    ]
+
+    def _spearman(a, b):
+        mask = np.isfinite(a) & np.isfinite(b)
+        n = int(mask.sum())
+        if n < 5:
+            return float("nan"), float("nan"), n
+        rho, p = spearmanr(a[mask], b[mask])
+        return float(rho), float(p), n
+
+    if len(interior) >= 5:
+        for cov_name, cov_col in [
+            ("hull_overlap_frac_vs_nn_dist_m", "nn_dist_m"),
+            ("hull_overlap_frac_vs_hull_volume_m3", "hull_volume_m3"),
+            ("hull_overlap_frac_vs_n_gt_within_5m", "n_gt_within_5m"),
+        ]:
+            rho, p, n = _spearman(
+                interior["hull_overlap_frac"].to_numpy(dtype=float),
+                interior[cov_col].to_numpy(dtype=float),
+            )
+            rows.append(
+                {
+                    "Metric": "collinearity",
+                    "Method": "all",
+                    "Covariate": cov_name,
+                    "Spearman_rho": rho,
+                    "p_value": p,
+                    "N": n,
+                    "N_interior": n_interior,
+                    "N_edge": n_edge,
+                    "Note": "interior focals only",
+                }
+            )
+
+    for method, sub in per.groupby("Method"):
+        interior_m = sub.loc[~sub["edge_censored_5m"].astype(bool)]
+        y = interior_m["f1_hard"].to_numpy(dtype=float)
+        nn = interior_m["nn_dist_m"].to_numpy(dtype=float)
+        ov = interior_m["hull_overlap_frac"].to_numpy(dtype=float)
+        ov_nn = interior_m["hull_overlap_nn_frac"].to_numpy(dtype=float)
+
+        for col_name, x in [
+            ("nn_dist_m", nn),
+            ("hull_overlap_frac", ov),
+            ("hull_overlap_nn_frac", ov_nn),
+        ]:
+            rho, p, n = _spearman(x, y)
+            rows.append(
+                {
+                    "Metric": "hard_f1_interior",
+                    "Method": method,
+                    "Covariate": col_name,
+                    "Spearman_rho": rho,
+                    "p_value": p,
+                    "N": n,
+                    "N_interior": n_interior,
+                    "N_edge": n_edge,
+                    "Note": "interior focals only",
+                }
+            )
+
+        mask = np.isfinite(y) & np.isfinite(nn) & np.isfinite(ov)
+        n = int(mask.sum())
+        if n < 5:
+            rho, p = float("nan"), float("nan")
+        else:
+            ov_res = rank_residual(ov, nn)
+            rho, p = spearmanr(ov_res[mask], y[mask])
+            rho, p = float(rho), float(p)
+        rows.append(
+            {
+                "Metric": "hard_f1_residual_on_nn",
+                "Method": method,
+                "Covariate": "hull_overlap_frac",
+                "Spearman_rho": rho,
+                "p_value": p,
+                "N": n,
+                "N_interior": n_interior,
+                "N_edge": n_edge,
+                "Note": "overlap residualized on nn_dist_m; interior",
+            }
+        )
+    return pd.DataFrame(rows)
+
+
 def make_figures(per: pd.DataFrame, t8: pd.DataFrame, t9: pd.DataFrame, t11: pd.DataFrame):
     rm.FIGURES.mkdir(parents=True, exist_ok=True)
     colors = {"ForestMamba": "#1b9e77", "SegmentAnyTree": "#d95f02"}
@@ -489,9 +794,24 @@ def main() -> None:
     cat = pd.read_csv(rm.ALIGNED_DIR / "gt_instances.csv")
     plot_t1 = pd.read_csv(rm.TABLES / "T1_overall.csv")
 
-    print("Computing tree covariates (height / NN / hull) ...", flush=True)
+    print(
+        "Computing tree covariates (height / NN / hull / neighbour count / hull overlap) ...",
+        flush=True,
+    )
     cov = compute_tree_covariates(data, cat)
     size_qs = cov.attrs.get("size_qs", cov["n_points"].quantile([1 / 3, 2 / 3]).tolist())
+    n_edge = int(cov["edge_censored_5m"].astype(bool).sum())
+    print(
+        f"  neighbour-count edge census: N_GT={len(cov)}  "
+        f"N_interior={len(cov) - n_edge}  N_edge={n_edge}",
+        flush=True,
+    )
+    ov = cov["hull_overlap_frac"].to_numpy(dtype=float)
+    print(
+        f"  hull_overlap_frac: finite={int(np.isfinite(ov).sum())}/{len(ov)}  "
+        f"min={np.nanmin(ov):.3f}  max={np.nanmax(ov):.3f}",
+        flush=True,
+    )
 
     frames = []
     for method, key in MODELS:
@@ -509,13 +829,17 @@ def main() -> None:
     per.to_csv(per_path, index=False)
     print(f"Wrote {per_path}", flush=True)
 
-    print("Building T8–T11 ...", flush=True)
+    print("Building T8-T11 + T10b + T10c ...", flush=True)
     t8, t9, t10, t11 = build_tables(per, plot_t1, size_qs, rng)
+    t10b = build_neighbour_count_side_table(per)
+    t10c = build_hull_overlap_side_table(per)
     t8.to_csv(rm.TABLES / "T8_macro_vs_plot.csv", index=False)
     t9.to_csv(rm.TABLES / "T9_score_by_covariate.csv", index=False)
     t10.to_csv(rm.TABLES / "T10_correlations.csv", index=False)
+    t10b.to_csv(rm.TABLES / "T10b_neighbour_count_collinearity.csv", index=False)
+    t10c.to_csv(rm.TABLES / "T10c_hull_overlap_collinearity.csv", index=False)
     t11.to_csv(rm.TABLES / "T11_height_by_size.csv", index=False)
-    print("Wrote T8–T11", flush=True)
+    print("Wrote T8-T11, T10b and T10c", flush=True)
 
     print("Figures ...", flush=True)
     make_figures(per, t8, t9, t11)
@@ -526,5 +850,5 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", required=True, help="Path to site YAML config")
     args = parser.parse_args()
-    configure(load_site_config(args.config))
+    configure_site(load_site_config(args.config))
     main()

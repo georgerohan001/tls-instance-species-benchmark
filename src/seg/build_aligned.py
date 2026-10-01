@@ -49,8 +49,20 @@ def configure(site: SitePaths) -> None:
 
 
 def parse_gt_id(name: str) -> int:
-    m = re.search(r"tree_(\d+)", name, re.I)
-    return int(m.group(1)) if m else -1
+    """One unique id per CloudCompare tree layer file.
+
+    tree_01102.laz -> 1102000; tree_00998_3.laz -> 998003.
+    Encoding: base * 1000 + fragment_suffix (0 if absent). Fragments must be < 1000.
+    """
+    base_name = Path(str(name).split(" (", 1)[0]).name
+    m = re.search(r"tree_(\d+)(?:_(\d+))?", base_name, re.I)
+    if not m:
+        return -1
+    base = int(m.group(1))
+    frag = int(m.group(2)) if m.group(2) is not None else 0
+    if frag >= 1000:
+        raise SystemExit(f"Fragment suffix must be < 1000: {name}")
+    return base * 1000 + frag
 
 
 def layer_kind(name: str) -> str:

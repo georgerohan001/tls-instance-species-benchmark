@@ -6,11 +6,26 @@ Directory: `gt_layers/tile_XXX/` (XXX = zero-padded tile id from config `tiles`)
 
 | Pattern | Role |
 |---------|------|
-| `tree_*.las` / `.laz` | One manual tree instance; `gt_id` from digits in the name |
+| `tree_*.las` / `.laz` | One manual tree instance; `gt_id` from fragment-safe encoding (see below) |
 | `misc_inst*.las` | Non-tree / leftover points (`gt_id = -1`) |
 | `ground*.las` | Ground points (`gt_id = -1`) |
 
 Prefer attaching ForestMamba fields on the same points when staging (`PredInstance_FM`, optional `PredScore_FM`). Otherwise `build_aligned` nearest-neighbour transfers from `fm_laz`.
+
+### GT ID encoding
+
+One layer file = one GT tree. Encoding is `base * 1000 + fragment` where `tree_#####.laz` has fragment `0` and `tree_#####_N.laz` uses suffix `N` (`N < 1000`). Do not collapse multiple `_N` layers onto the same base id.
+
+## Tile XY bounds (`tile_xy_bounds`)
+
+Optional mapping in the site YAML; **required** to run neighbour-count edge censoring and T10b/T10c:
+
+```yaml
+tile_xy_bounds:
+  1: [xmin, ymin, xmax, ymax]
+```
+
+Coordinates must match the point-cloud CRS. Example thesis footprints appear only in `configs/*.example.yaml` as illustrations — any site can supply its own values.
 
 ## ForestMamba LAZ (`fm_laz`)
 

@@ -28,6 +28,11 @@ species_map: contracts/detailview_lookup.csv
 nn_m: 0.05
 n_min: 100
 
+# Optional but required for neighbour-count edge censoring (T10b/T10c).
+# Toy footprint — replace with your tile XY extents [xmin, ymin, xmax, ymax].
+# tile_xy_bounds:
+#   1: [0.0, 0.0, 25.0, 25.0]
+
 outputs:
   tables: outputs/my_site/tables
   figures: outputs/my_site/figures

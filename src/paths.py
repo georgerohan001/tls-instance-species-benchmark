@@ -60,6 +60,9 @@ class SitePaths:
     nn_m: float
     n_min: int
     title: str
+    # Optional per-tile XY footprints for neighbour-count edge censoring.
+    # Keys are tile ids; values are (xmin, ymin, xmax, ymax).
+    tile_xy_bounds: dict[int, tuple[float, float, float, float]]
     raw: dict[str, Any]
 
     def ensure_output_dirs(self) -> None:
@@ -126,6 +129,25 @@ def load_site_config(config_path: str | Path) -> SitePaths:
 
     tiles = tuple(int(t) for t in raw.get("tiles", [1]))
 
+    tile_xy_bounds: dict[int, tuple[float, float, float, float]] = {}
+    raw_bounds = raw.get("tile_xy_bounds") or {}
+    if raw_bounds:
+        if not isinstance(raw_bounds, dict):
+            raise ValueError("tile_xy_bounds must be a mapping of tile_id -> [xmin, ymin, xmax, ymax]")
+        for tid, vals in raw_bounds.items():
+            if vals is None:
+                continue
+            if not isinstance(vals, (list, tuple)) or len(vals) != 4:
+                raise ValueError(
+                    f"tile_xy_bounds[{tid}] must be [xmin, ymin, xmax, ymax], got {vals!r}"
+                )
+            tile_xy_bounds[int(tid)] = (
+                float(vals[0]),
+                float(vals[1]),
+                float(vals[2]),
+                float(vals[3]),
+            )
+
     return SitePaths(
         site_id=site_id,
         repo_root=REPO_ROOT,
@@ -149,6 +171,7 @@ def load_site_config(config_path: str | Path) -> SitePaths:
         nn_m=float(raw.get("nn_m", 0.05)),
         n_min=int(raw.get("n_min", 100)),
         title=title,
+        tile_xy_bounds=tile_xy_bounds,
         raw=raw,
     )
 

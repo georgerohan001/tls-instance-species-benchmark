@@ -1,0 +1,23 @@
+# Synthetic smoke-test site (not thesis data). Used by tests/smoke_tiny_site.py.
+# data_root points at the committed fixture under tests/fixtures/tiny_site.
+
+site_id: tiny_site
+title: Tiny synthetic site
+data_root: tests/fixtures/tiny_site
+
+tiles: [1]
+
+aligned: aligned/x_eval.npz
+gt_layers_dir: gt_layers
+
+nn_m: 0.05
+n_min: 5
+
+# 20 m x 20 m toy tile. Interior stem near centre; edge stem near xmin.
+tile_xy_bounds:
+  1: [0.0, 0.0, 20.0, 20.0]
+
+outputs:
+  tables: outputs/tiny_site/tables
+  figures: outputs/tiny_site/figures
+  dv_results: outputs/tiny_site/detailview

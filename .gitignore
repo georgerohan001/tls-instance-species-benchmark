@@ -16,6 +16,10 @@
 *.shx
 *.prj
 
+# Synthetic smoke fixture (tiny arrays only; not study data)
+!tests/fixtures/tiny_site/aligned/*.npz
+!tests/fixtures/tiny_site/aligned/*.csv
+
 # Python
 __pycache__/
 *.py[cod]

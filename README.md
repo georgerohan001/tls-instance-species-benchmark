@@ -11,7 +11,7 @@ This repository ships **analysis code, configs, contracts**, and a **static HTML
 | In scope | Out of scope |
 |----------|----------------|
 | Align GT + FM (+ inject SAT) into `x_eval.npz` | Running ForestMamba / SAT / DetailView inference |
-| ForestFormer3D-style metrics (T1–T7, T8–T11) | CloudCompare BIN editing |
+| ForestFormer3D-style metrics (T1–T7, T8–T11, optional T10b/T10c) | CloudCompare BIN editing |
 | DetailView FOR-species20K-style tables (T20–T26) | Shipping multi-GB LAZ / BIN files |
 | Paper-style Results figures from CSV tables | Editable LaTeX sources (preview HTML only) |
 | Static thesis HTML preview (`docs/`) | |
@@ -34,6 +34,7 @@ pip install -r requirements.txt
 
 # 1. Copy an example config and edit relative paths
 copy configs\site.example.yaml configs\my_site.yaml
+# Set tile_xy_bounds for neighbour-count / hull-overlap side checks (T10b/T10c)
 
 # 2. Place inputs under data/my_site/ (see data/README.md)
 
@@ -43,6 +44,10 @@ python scripts/build_aligned.py --config configs/my_site.yaml
 python scripts/inject_sat.py --config configs/my_site.yaml
 python scripts/run_metrics.py --config configs/my_site.yaml
 python scripts/analyze_per_tree.py --config configs/my_site.yaml
+
+# Optional: portable smoke without study data
+python tests/build_tiny_site_fixture.py
+python tests/smoke_tiny_site.py
 
 # 4. DetailView species track (after multi-track LAZ exists)
 python scripts/analyze_detailview.py --config configs/my_site.yaml
@@ -66,7 +71,7 @@ manual GT LAS (tile_*/tree_*.las)
      inject_sat (PredInstance_SAT)
               │
               ├─► run_metrics      → T1–T7, density curves, seg figures
-              └─► analyze_per_tree → T8–T11, per_tree_scores.csv
+              └─► analyze_per_tree → T8–T11, optional T10b/T10c, per_tree_scores.csv
 
 multi-track DetailView LAZ + inventory match CSV
               │
@@ -83,9 +88,10 @@ tables from one or more sites
 
 1. Copy `configs/site.example.yaml` → `configs/<site_id>.yaml`.
 2. Set `site_id`, `data_root: data/<site_id>`, and `tiles`.
-3. Fill `data/<site_id>/` using the layout in [`data/README.md`](data/README.md).
-4. Map inventory columns (`inventory_id_col`, `inventory_species_col`) to your GeoPackage.
-5. Run the commands above.
+3. Optionally set `tile_xy_bounds` for packing side checks (required for T10b/T10c).
+4. Fill `data/<site_id>/` using the layout in [`data/README.md`](data/README.md).
+5. Map inventory columns (`inventory_id_col`, `inventory_species_col`) to your GeoPackage.
+6. Run the commands above.
 
 Paths in YAML must be **relative** (to `data_root` or the repo root). Absolute paths are rejected so the package stays portable and does not embed machine-specific locations.
 

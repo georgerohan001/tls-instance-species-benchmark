@@ -1,5 +1,6 @@
 # Example layout matching the Mathislewald thesis evaluation (tile 001).
 # Fill data/mathislewald/ with inputs obtained separately — nothing is shipped.
+# Example values are illustrative; runtime does not hard-code this site_id.
 
 site_id: mathislewald
 title: Mathislewald
@@ -25,6 +26,10 @@ species_map: contracts/detailview_lookup.csv
 
 nn_m: 0.05
 n_min: 100
+
+# Tile footprint used for neighbour-count edge censoring (illustrative).
+tile_xy_bounds:
+  1: [431838.94475, 5303878.08225, 431863.9445, 5303903.082]
 
 outputs:
   tables: outputs/mathislewald/tables
